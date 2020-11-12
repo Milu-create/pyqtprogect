@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>640</width>
+    <height>480</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <widget class="QTabWidget" name="widget_main">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>641</width>
+     <height>481</height>
+    </rect>
+   </property>
+   <property name="mouseTracking">
+    <bool>false</bool>
+   </property>
+   <property name="tabletTracking">
+    <bool>false</bool>
+   </property>
+   <property name="acceptDrops">
+    <bool>false</bool>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="tabPosition">
+    <enum>QTabWidget::South</enum>
+   </property>
+   <property name="tabShape">
+    <enum>QTabWidget::Rounded</enum>
+   </property>
+   <property name="currentIndex">
+    <number>1</number>
+   </property>
+   <property name="tabsClosable">
+    <bool>false</bool>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
+   </property>
+   <property name="tabBarAutoHide">
+    <bool>false</bool>
+   </property>
+   <widget class="QWidget" name="widget_game">
+    <attribute name="title">
+     <string>Игра</string>
+    </attribute>
+    <widget class="QLCDNumber" name="game_over_sec">
+     <property name="geometry">
+      <rect>
+       <x>520</x>
+       <y>160</y>
+       <width>110</width>
+       <height>60</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="button_east">
+     <property name="geometry">
+      <rect>
+       <x>580</x>
+       <y>320</y>
+       <width>41</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>˃</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="button_noth">
+     <property name="geometry">
+      <rect>
+       <x>540</x>
+       <y>290</y>
+       <width>41</width>
+       <height>32</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>˄</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="button_west">
+     <property name="geometry">
+      <rect>
+       <x>500</x>
+       <y>320</y>
+       <width>41</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>˂</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="button_south">
+     <property name="geometry">
+      <rect>
+       <x>540</x>
+       <y>350</y>
+       <width>41</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>41</width>
+       <height>31</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>˅</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="name_team_1">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>0</y>
+       <width>110</width>
+       <height>30</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="name_team_2">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>0</y>
+       <width>110</width>
+       <height>30</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="choose_color_1">
+     <property name="geometry">
+      <rect>
+       <x>120</x>
+       <y>0</y>
+       <width>110</width>
+       <height>30</height>
+      </rect>
+     </property>
+     <item>
+      <property name="text">
+       <string>Красный</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Синий</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Зелёный</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Фиолетовый</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Чёрный</string>
+      </property>
+     </item>
+    </widget>
+    <widget class="QComboBox" name="choose_color_2">
+     <property name="geometry">
+      <rect>
+       <x>360</x>
+       <y>0</y>
+       <width>110</width>
+       <height>30</height>
+      </rect>
+     </property>
+     <item>
+      <property name="text">
+       <string>Розовый</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Оранжевый</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Коричневый</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Голубой</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Жёлтый</string>
+      </property>
+     </item>
+    </widget>
+    <widget class="QPushButton" name="play_button">
+     <property name="geometry">
+      <rect>
+       <x>500</x>
+       <y>0</y>
+       <width>110</width>
+       <height>40</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string notr="true">ИГРАТЬ</string>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>16</width>
+       <height>16</height>
+      </size>
+     </property>
+     <property name="shortcut">
+      <string notr="true"/>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="widget_top10">
+    <attribute name="title">
+     <string>Топ команд</string>
+    </attribute>
+   </widget>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
