@@ -1,9 +1,9 @@
+import random
 import sys
 import sqlite3
 from itertools import cycle
-
-from PyQt5.QtWidgets import QWidget, QPushButton, QComboBox, QTabWidget, QLineEdit, QLCDNumber, \
-    QPlainTextEdit, QButtonGroup
+from PyQt5.QtWidgets import QWidget, QPushButton, QComboBox, QTabWidget, QLineEdit, QLCDNumber, QPlainTextEdit, \
+    QButtonGroup
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QTimer, QSize
 from PyQt5 import QtCore, QtWidgets
@@ -55,7 +55,7 @@ class Ui_Form(object):
         self.widget_game.setObjectName("widget_game")
         self.info_tab.setGeometry(QtCore.QRect(470, 50, 160, 90))
         self.info_tab.setEnabled(False)
-        self.top_tab.setGeometry(QtCore.QRect(120, 50, 400, 300))
+        self.top_tab.setGeometry(QtCore.QRect(120, 50, 400, 360))
         self.top_tab.setEnabled(False)
         self.game_over_sec.setGeometry(QtCore.QRect(520, 160, 110, 60))
         self.game_over_sec.setObjectName("game_over_sec")
@@ -160,9 +160,9 @@ class Ui_Form(object):
                     self.matrix[i][j].setIcon(QIcon())
         self.matrix[6][6].setIcon(QIcon('football_ball.jpg'))
         self.matrix[6][6].setIconSize(QSize(25, 25))
-        self._teams_cycle = cycle([self._return_znach(key=("name_team1",))[0],
-                                   self._return_znach(key=("name_team2",))[0]])
         self._teams = [self._return_znach(key=("name_team1",))[0], self._return_znach(key=("name_team2",))[0]]
+        first_move = random.randint(0, 1)
+        self._teams_cycle = cycle([self._teams[first_move], self._teams[abs(first_move - 1)]])
         self.time_game = 300
         self.game_over_sec.display(self.time_game)
         self.player_now = next(self._teams_cycle)
@@ -342,6 +342,7 @@ class Ui_Form(object):
     def _strake(self):
         i, k = 0, 3
         if self.player_now == self._teams[0]:
+            self.info_tab.setPlaceholderText(f'Штрафной\nКоманды {self._teams[0]}')
             while i < k:
                 if self.y + 1 < 13:
                     if self.matrix[self.x][self.y - 1].text() != "." and self.matrix[self.x][self.y].text() != '-':
@@ -378,10 +379,11 @@ class Ui_Form(object):
                         i += 1
                         k += 1
         elif self.player_now == self._teams[1]:
+            self.info_tab.setPlaceholderText(f'Штрафной\nКоманды {self._teams[1]}')
             while i < k:
                 if self.y - 1 > -1:
                     if self.matrix[self.x + 1][self.y].text() != "." and self.matrix[self.x][self.y].text() != "-":
-                        self.matrix[self.x][self.y].setIcon(QIcon(self.color1))
+                        self.matrix[self.x][self.y].setIcon(QIcon(self.color2))
                         self.matrix[self.x][self.y].setIconSize(QSize(20, 20))
                         self.matrix[self.x][self.y].setText('.')
                         self.y -= 1
