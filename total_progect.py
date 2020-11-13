@@ -5,14 +5,14 @@ from itertools import cycle
 from PyQt5.QtWidgets import QWidget, QPushButton, QComboBox, QTabWidget, QLineEdit, QLCDNumber, \
     QPlainTextEdit, QButtonGroup
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QTimer, Qt, QSize
+from PyQt5.QtCore import QTimer, QSize
 from PyQt5 import QtCore, QtWidgets
 
 
 class Ui_Form(object):
     def __init__(self):
         self._button_group = QButtonGroup()
-        self.color = {'Красный': 'red.jpg', 'Синий': 'dark_blue.jpg', 'Зелёный': 'green.jpg',
+        self.COLOR = {'Красный': 'red.jpg', 'Синий': 'dark_blue.jpg', 'Зелёный': 'green.jpg',
                       'Фиолетовый': 'purple.jpg', 'Чёрный': 'black.jpg', 'Розовый': 'pink.jpg',
                       'Оранжевый': 'orange.jpg', 'Коричневый': 'brovn.jpg', 'Голубой': 'blue.jpg',
                       'Жёлтый': 'yellow.jpg'}
@@ -33,8 +33,10 @@ class Ui_Form(object):
         self.top_tab = QPlainTextEdit(self.widget_top10)
         self.matrix = list()
         self.time_game = 300
-        self.x, self.y = 6, 6
         self.kol_move = 0
+        self.x, self.y = 6, 6
+        self.con = sqlite3.connect("football.db")
+        self.cur = self.con.cursor()
 
     def setupUi(self, Form):
         Form.setObjectName("Form")
@@ -51,19 +53,19 @@ class Ui_Form(object):
         self.widget_main.setTabBarAutoHide(False)
         self.widget_main.setObjectName("widget_main")
         self.widget_game.setObjectName("widget_game")
-        self.info_tab.setGeometry(QtCore.QRect(520, 70, 110, 60))
+        self.info_tab.setGeometry(QtCore.QRect(470, 50, 160, 90))
         self.info_tab.setEnabled(False)
         self.top_tab.setGeometry(QtCore.QRect(120, 50, 400, 300))
         self.top_tab.setEnabled(False)
         self.game_over_sec.setGeometry(QtCore.QRect(520, 160, 110, 60))
         self.game_over_sec.setObjectName("game_over_sec")
-        self.button_east.setGeometry(QtCore.QRect(580, 320, 41, 31))
+        self.button_east.setGeometry(QtCore.QRect(580, 320, 40, 30))
         self.button_east.setObjectName("button_east")
-        self.button_noth.setGeometry(QtCore.QRect(540, 290, 41, 32))
+        self.button_noth.setGeometry(QtCore.QRect(540, 290, 40, 30))
         self.button_noth.setObjectName("button_noth")
-        self.button_west.setGeometry(QtCore.QRect(500, 320, 41, 31))
+        self.button_west.setGeometry(QtCore.QRect(500, 320, 40, 30))
         self.button_west.setObjectName("button_west")
-        self.button_south.setGeometry(QtCore.QRect(540, 350, 41, 31))
+        self.button_south.setGeometry(QtCore.QRect(540, 350, 40, 30))
         self.button_south.setMinimumSize(QtCore.QSize(41, 31))
         self.button_south.setObjectName("button_south")
         self.name_team_1.setGeometry(QtCore.QRect(0, 0, 110, 30))
@@ -100,23 +102,7 @@ class Ui_Form(object):
                 btn.setGeometry((i + 2) * 30, j * 30 + 50, 30, 30)
                 btn.setStyleSheet('QPushButton {background-color: white}')
                 self.matrix[-1].append(btn)
-        con = sqlite3.connect("football.db")
-        cur = con.cursor()
-        result = cur.execute("""SELECT time_win 
-                                FROM players""").fetchall()
-        result.sort()
-
-        with open('text_for_top.txt', mode='w') as out_file:
-            if len(result) > 10:
-                for i in range(10):
-                    total = cur.execute("SELECT win_team FROM players WHERE time_win=?;", result[i]).fetchone()
-                    print('', i, total[0], result[i], file=out_file, sep='\t')
-            else:
-                for i in range(len(result)):
-                    total = cur.execute("SELECT win_team FROM players WHERE time_win=?;", result[i]).fetchone()
-                    print('', i, total[0], result[i][0], file=out_file, sep='\t')
-        with open('text_for_top.txt', mode='r') as file:
-            self.top_tab.setPlainText(file.read())
+        self._update_tad_top()
         self.retranslateUi(Form)
         self.widget_main.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(Form)
@@ -147,35 +133,33 @@ class Ui_Form(object):
         self.widget_main.setTabText(self.widget_main.indexOf(self.widget_top10), _translate("Form", "Топ команд"))
 
     def _play_button_clicked(self):
-        self.con = sqlite3.connect("football.db")
-        self.cur = self.con.cursor()
         if self.name_team_1.text() == self.name_team_2.text() == '':
             self.all_teams = ('Зенит', 'Локомотив', self.choose_color_1.currentText(),
-                              self.choose_color_2.currentText())
-        elif self.name_team_1.text() == self.name_team_2.text():
-            self.all_teams = (self.name_team_1.text(), 'Локомотив', self.choose_color_1.currentText(),
-                              self.choose_color_2.currentText())
+                              self.choose_color_2.currentText(), 0)
         else:
             self.all_teams = (self.name_team_1.text(), self.name_team_2.text(), self.choose_color_1.currentText(),
-                              self.choose_color_2.currentText())
-        self.cur.execute("INSERT INTO players(name_team1,name_team2,color_team1,color_team2) VALUES(?, ?, ?, ?);",
-                         self.all_teams)
+                              self.choose_color_2.currentText(), 0)
+        self.cur.execute("""INSERT INTO players(name_team1,name_team2,color_team1,color_team2, time_win) 
+                            VALUES(?, ?, ?, ?, ?);""",
+                            self.all_teams)
         self.con.commit()
-        self.color1, self.color2 = self.color[self._return_znach(key=('color_team1',))[0]],\
-                                   self.color[self._return_znach(key=('color_team2',))[0]]
+        self.color1, self.color2 = self.COLOR[self._return_znach(key=('color_team1',))[0]],\
+                                   self.COLOR[self._return_znach(key=('color_team2',))[0]]
         for i in range(13):
             for j in range(13):
-                self.matrix[i][j].setStyleSheet('QPushButton {background-color: white}')
-        for i in range(5, 8):
-            self.matrix[i][0].setIcon(QIcon(self.color1))
-            self.matrix[i][0].setIconSize(QSize(30, 30))
-            self.matrix[i][0].setText('-')
-            self.matrix[i][12].setIcon(QIcon(self.color2))
-            self.matrix[i][12].setIconSize(QSize(30, 30))
-            self.matrix[i][12].setText('-')
+                if 5 <= i <= 7 and j == 0:
+                    self.matrix[i][j].setIcon(QIcon(self.color1))
+                    self.matrix[i][j].setIconSize(QSize(20, 20))
+                    self.matrix[i][j].setText('-')
+                elif 5 <= i <= 7 and j == 12:
+                    self.matrix[i][j].setIcon(QIcon(self.color2))
+                    self.matrix[i][j].setIconSize(QSize(20, 20))
+                    self.matrix[i][j].setText('-')
+                else:
+                    self.matrix[i][j].setText('')
+                    self.matrix[i][j].setIcon(QIcon())
         self.matrix[6][6].setIcon(QIcon('football_ball.jpg'))
         self.matrix[6][6].setIconSize(QSize(25, 25))
-        self.matrix[6][6].setText('.')
         self._teams_cycle = cycle([self._return_znach(key=("name_team1",))[0],
                                    self._return_znach(key=("name_team2",))[0]])
         self._teams = [self._return_znach(key=("name_team1",))[0], self._return_znach(key=("name_team2",))[0]]
@@ -184,6 +168,12 @@ class Ui_Form(object):
         self.player_now = next(self._teams_cycle)
         self.info_tab.setPlaceholderText(f'Ход команды\n{self.player_now}')
         QTimer.singleShot(1000, self._update)
+        self.button_south.setEnabled(True)
+        self.button_west.setEnabled(True)
+        self.button_noth.setEnabled(True)
+        self.button_east.setEnabled(True)
+        self.x, self.y, self.kol_move = 6, 6, 0
+
 
     def _update(self):
         try:
@@ -194,12 +184,15 @@ class Ui_Form(object):
             QTimer.singleShot(1000, self._update)
         except ZeroDivisionError:
             self.game_over_sec.display(0)
-            self.info_tab.setPlaceholderText(f'Игра окончена!\nНичья!')
+            name_win = self._return_znach(key=("win_team",))[0]
+            if name_win == 'Ничья':
+                self.info_tab.setPlaceholderText(f'Игра окончена!\n{name_win}')
+                return
+            self.info_tab.setPlaceholderText(f'Игра окончена!\n'
+                                             f'Победила команда {self._return_znach(key=("win_team",))[0]}')
 
     def _return_znach(self, key=('name',)):
-        con = sqlite3.connect("football.db")
-        cur = con.cursor()
-        result = cur.execute(f"""SELECT {key[0]} FROM players
+        result = self.cur.execute(f"""SELECT {key[0]} FROM players
                                 WHERE number_of_play=(SELECT MAX(number_of_play) 
                                 FROM players)""").fetchone()
         return result
@@ -214,263 +207,229 @@ class Ui_Form(object):
             self._move_up()
         elif text == "˅":
             self._move_down()
+        if self.matrix[self.x][self.y].text() == '-':
+            if self.y == 12:
+                self.cur.execute("""UPDATE players SET win_team = (SELECT name_team1 FROM players 
+                                                WHERE number_of_play=(SELECT MAX(number_of_play) FROM players))
+                                                WHERE number_of_play=(SELECT MAX(number_of_play) FROM players)""")
+                self.cur.execute(f"""UPDATE players SET time_win = ?
+                                                    WHERE number_of_play=(SELECT MAX(number_of_play) 
+                                                    FROM players);""", (self.time_game,))
+                self.con.commit()
+                self.time_game = 1
+                self.button_south.setEnabled(False)
+                self.button_west.setEnabled(False)
+                self.button_noth.setEnabled(False)
+                self.button_east.setEnabled(False)
+                self._update_tad_top()
+                return
+
+            else:
+                self.cur.execute("""UPDATE players SET win_team = (SELECT name_team2 FROM players 
+                                WHERE number_of_play=(SELECT MAX(number_of_play) FROM players))
+                                WHERE number_of_play=(SELECT MAX(number_of_play) FROM players)""")
+                self.cur.execute(f"""UPDATE players SET time_win = ?
+                                    WHERE number_of_play=(SELECT MAX(number_of_play) 
+                                    FROM players);""", (self.time_game,))
+                self.time_game = 1
+                self.con.commit()
+                self.button_south.setEnabled(False)
+                self.button_west.setEnabled(False)
+                self.button_noth.setEnabled(False)
+                self.button_east.setEnabled(False)
+                self._update_tad_top()
+                return
         if self.kol_move == 3:
             self.player_now = next(self._teams_cycle)
             self.info_tab.setPlaceholderText(f'Ход команды\n{self.player_now}')
             self.kol_move = 0
 
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Right:
-            self._move_right()
-        elif event.key() == Qt.Key_Left:
-            self._move_left()
-        elif event.key() == Qt.Key_Up:
-            self._move_up()
-        elif event.key() == Qt.Key_Down:
-            self._move_down()
-        if self.kol_move == 3:
-            self.info_tab.setPlaceholderText(f'Ход команды\n{next(self._teams_cycle)}')
-            self.kol_move = 0
-
     def _move_right(self):
         if self.x + 1 < 13:
-            if self.matrix[self.x + 1][self.y].text() != ".":
+            if self.matrix[self.x + 1][self.y].text() != "." and self.matrix[self.x][self.y].text() != '-':
                 if self.player_now == self._teams[0]:
                     self.matrix[self.x][self.y].setIcon(QIcon(self.color1))
-                    self.matrix[self.x][self.y].setIconSize(QSize(30, 30))
+                    self.matrix[self.x][self.y].setIconSize(QSize(20, 20))
                     self.matrix[self.x][self.y].setText('.')
                     self.x += 1
                     self.matrix[self.x][self.y].setIcon(QIcon('football_ball.jpg'))
                     self.matrix[self.x][self.y].setIconSize(QSize(25, 25))
-                    self.matrix[self.x][self.y].setText('.')
                     self.kol_move += 1
                 elif self.player_now == self._teams[1]:
                     self.matrix[self.x][self.y].setIcon(QIcon(self.color2))
-                    self.matrix[self.x][self.y].setIconSize(QSize(30, 30))
+                    self.matrix[self.x][self.y].setIconSize(QSize(20, 20))
                     self.matrix[self.x][self.y].setText('.')
                     self.x += 1
                     self.matrix[self.x][self.y].setIcon(QIcon('football_ball.jpg'))
                     self.matrix[self.x][self.y].setIconSize(QSize(25, 25))
-                    self.matrix[self.x][self.y].setText('.')
                     self.kol_move += 1
-            elif self.matrix[self.x][self.y].text() == '-':
-                if (self.player_now == self._teams[0] and self.y == 1) or \
-                        (self.player_now != self._teams[0] and self.y == 1):
-                    self.cur.execute(f"""UPDATE players SET win_team = {self._teams[1]}
-                                    WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                    FROM players);""")
-                    self.cur.execute(f"""UPDATE players SET time_win = {self.time_game}
-                                                        WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                                        FROM players);""")
-                    self.time_game = 0
-                    self.game_over_sec.display(0)
-                    self.info_tab.setPlaceholderText(f'Игра окончена!\nПобедила команда {self._teams[0]}')
-
-                else:
-                    self.cur.execute(f"""UPDATE players SET win_team = {self._teams[1]}
-                                                        WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                                        FROM players);""")
-                    self.cur.execute(f"""UPDATE players SET time_win = {self.time_game}
-                                         WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                                                            FROM players);""")
-                    self.time_game = 0
-                    self.game_over_sec.display(0)
-                    self.info_tab.setPlaceholderText(f'Игра окончена!\nПобедила команда {self._teams[1]}')
-            elif (self.matrix[self.x][self.y].text() == "." and self.matrix[self.x - 1][self.y].text() == "."
+            if (self.matrix[self.x][self.y].text() == "." and self.matrix[self.x - 1][self.y].text() == "."
                   and self.matrix[self.x][self.y + 1].text() == "." and
                   self.matrix[self.x][self.y - 1].text() == "."):
                 self._strake()
 
     def _move_left(self):
         if self.x - 1 > -1:
-            if self.matrix[self.x - 1][self.y].text() != ".":
+            if self.matrix[self.x - 1][self.y].text() != "." and self.matrix[self.x][self.y].text() != '-':
                 if self.player_now == self._teams[0]:
                     self.matrix[self.x][self.y].setIcon(QIcon(self.color1))
-                    self.matrix[self.x][self.y].setIconSize(QSize(30, 30))
+                    self.matrix[self.x][self.y].setIconSize(QSize(20, 20))
                     self.matrix[self.x][self.y].setText('.')
                     self.x -= 1
                     self.matrix[self.x][self.y].setIcon(QIcon('football_ball.jpg'))
                     self.matrix[self.x][self.y].setIconSize(QSize(25, 25))
-                    self.matrix[self.x][self.y].setText('.')
                     self.kol_move += 1
-                elif self.player_now == self._teams[1]:
+                if self.player_now == self._teams[1]:
                     self.matrix[self.x][self.y].setIcon(QIcon(self.color2))
-                    self.matrix[self.x][self.y].setIconSize(QSize(30, 30))
+                    self.matrix[self.x][self.y].setIconSize(QSize(20, 20))
                     self.matrix[self.x][self.y].setText('.')
                     self.x -= 1
                     self.matrix[self.x][self.y].setIcon(QIcon('football_ball.jpg'))
                     self.matrix[self.x][self.y].setIconSize(QSize(25, 25))
-                    self.matrix[self.x][self.y].setText('.')
                     self.kol_move += 1
-            elif self.matrix[self.x][self.y].text() == '-':
-                if (self.player_now == self._teams[0] and self.y == 1) or \
-                        (self.player_now != self._teams[0] and self.y == 1):
-                    self.cur.execute(f"""UPDATE players SET win_team = {self._teams[1]}
-                                    WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                    FROM players);""")
-                    self.cur.execute(f"""UPDATE players SET time_win = {self.time_game}
-                                                        WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                                        FROM players);""")
-                    self.time_game = 0
-                    self.game_over_sec.display(0)
-                    self.info_tab.setPlaceholderText(f'Игра окончена!\nПобедила команда {self._teams[0]}')
-
-                else:
-                    self.cur.execute(f"""UPDATE players SET win_team = {self._teams[1]}
-                                                        WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                                        FROM players);""")
-                    self.cur.execute(f"""UPDATE players SET time_win = {self.time_game}
-                                         WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                                                            FROM players);""")
-                    self.time_game = 0
-                    self.game_over_sec.display(0)
-                    self.info_tab.setPlaceholderText(f'Игра окончена!\nПобедила команда {self._teams[1]}')
-            elif (self.matrix[self.x + 1][self.y].text() == "." and self.matrix[self.x - 1][self.y].text() == "."
+            if (self.matrix[self.x + 1][self.y].text() == "." and self.matrix[self.x - 1][self.y].text() == "."
                   and self.matrix[self.x][self.y + 1].text() == "." and
                   self.matrix[self.x][self.y - 1].text() == "."):
                 self._strake()
 
     def _move_down(self):
         if self.y + 1 < 13:
-            if self.matrix[self.x][self.y + 1].text() != ".":
+            if self.matrix[self.x][self.y + 1].text() != "." and self.matrix[self.x][self.y].text() != '-':
                 if self.player_now == self._teams[0]:
                     self.matrix[self.x][self.y].setIcon(QIcon(self.color1))
-                    self.matrix[self.x][self.y].setIconSize(QSize(30, 30))
+                    self.matrix[self.x][self.y].setIconSize(QSize(20, 20))
                     self.matrix[self.x][self.y].setText('.')
                     self.y += 1
                     self.matrix[self.x][self.y].setIcon(QIcon('football_ball.jpg'))
                     self.matrix[self.x][self.y].setIconSize(QSize(25, 25))
-                    self.matrix[self.x][self.y].setText('.')
                     self.kol_move += 1
                 elif self.player_now == self._teams[1]:
                     self.matrix[self.x][self.y].setIcon(QIcon(self.color2))
-                    self.matrix[self.x][self.y].setIconSize(QSize(30, 30))
+                    self.matrix[self.x][self.y].setIconSize(QSize(20, 20))
                     self.matrix[self.x][self.y].setText('.')
                     self.y += 1
                     self.matrix[self.x][self.y].setIcon(QIcon('football_ball.jpg'))
                     self.matrix[self.x][self.y].setIconSize(QSize(25, 25))
-                    self.matrix[self.x][self.y].setText('.')
                     self.kol_move += 1
-            elif self.matrix[self.x][self.y].text() == '-':
-                if (self.player_now == self._teams[0] and self.y == 1) or \
-                        (self.player_now != self._teams[0] and self.y == 1):
-                    self.cur.execute(f"""UPDATE players SET win_team = {self._teams[1]}
-                                    WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                    FROM players);""")
-                    self.cur.execute(f"""UPDATE players SET time_win = {self.time_game}
-                                                        WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                                        FROM players);""")
-                    self.time_game = 0
-                    self.game_over_sec.display(0)
-                    self.info_tab.setPlaceholderText(f'Игра окончена!\nПобедила команда {self._teams[0]}')
-
-                else:
-                    self.cur.execute(f"""UPDATE players SET win_team = {self._teams[1]}
-                                                        WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                                        FROM players);""")
-                    self.cur.execute(f"""UPDATE players SET time_win = {self.time_game}
-                                         WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                                                            FROM players);""")
-                    self.time_game = 0
-                    self.game_over_sec.display(0)
-                    self.info_tab.setPlaceholderText(f'Игра окончена!\nПобедила команда {self._teams[1]}')
-            elif (self.matrix[self.x + 1][self.y].text() == "." and self.matrix[self.x - 1][self.y].text() == "."
+            if (self.matrix[self.x + 1][self.y].text() == "." and self.matrix[self.x - 1][self.y].text() == "."
                   and self.matrix[self.x][self.y + 1].text() == "." and
                   self.matrix[self.x][self.y - 1].text() == "."):
                 self._strake()
 
     def _move_up(self):
         if self.y - 1 > -1:
-            if self.matrix[self.x][self.y - 1].text() != ".":
+            if self.matrix[self.x][self.y - 1].text() != "." and self.matrix[self.x][self.y].text() != '-':
                 if self.player_now == self._teams[0]:
                     self.matrix[self.x][self.y].setIcon(QIcon(self.color1))
-                    self.matrix[self.x][self.y].setIconSize(QSize(30, 30))
+                    self.matrix[self.x][self.y].setIconSize(QSize(20, 20))
                     self.matrix[self.x][self.y].setText('.')
                     self.y -= 1
                     self.matrix[self.x][self.y].setIcon(QIcon('football_ball.jpg'))
                     self.matrix[self.x][self.y].setIconSize(QSize(25, 25))
-                    self.matrix[self.x][self.y].setText('.')
                     self.kol_move += 1
                 elif self.player_now == self._teams[1]:
                     self.matrix[self.x][self.y].setIcon(QIcon(self.color2))
-                    self.matrix[self.x][self.y].setIconSize(QSize(30, 30))
+                    self.matrix[self.x][self.y].setIconSize(QSize(20, 20))
                     self.matrix[self.x][self.y].setText('.')
                     self.y -= 1
                     self.matrix[self.x][self.y].setIcon(QIcon('football_ball.jpg'))
                     self.matrix[self.x][self.y].setIconSize(QSize(25, 25))
-                    self.matrix[self.x][self.y].setText('.')
                     self.kol_move += 1
-            elif self.matrix[self.x][self.y].text() == '-':
-                if (self.player_now == self._teams[0] and self.y == 1) or \
-                        (self.player_now != self._teams[0] and self.y == 1):
-                    self.cur.execute(f"""UPDATE players SET win_team = {self._teams[1]}
-                                    WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                    FROM players);""")
-                    self.cur.execute(f"""UPDATE players SET time_win = {self.time_game}
-                                                        WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                                        FROM players);""")
-                    self.time_game = 0
-                    self.game_over_sec.display(0)
-                    self.info_tab.setPlaceholderText(f'Игра окончена!\nПобедила команда {self._teams[0]}')
-
-                else:
-                    self.cur.execute(f"""UPDATE players SET win_team = {self._teams[1]}
-                                                        WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                                        FROM players);""")
-                    self.cur.execute(f"""UPDATE players SET time_win = {self.time_game}
-                                         WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                                                            FROM players);""")
-                    self.time_game = 0
-                    self.game_over_sec.display(0)
-                    self.info_tab.setPlaceholderText(f'Игра окончена!\nПобедила команда {self._teams[1]}')
-            elif (self.matrix[self.x + 1][self.y].text() == "." and self.matrix[self.x - 1][self.y].text() == "."
-                  and self.matrix[self.x][self.y + 1].text() == "." and
-                  self.matrix[self.x][self.y - 1].text() == "."):
+            if (self.matrix[self.x + 1][self.y].text() == "." and self.matrix[self.x - 1][self.y].text() == "."
+                and self.matrix[self.x][self.y + 1].text() == "." and self.matrix[self.x][self.y - 1].text() == "."):
                 self._strake()
 
     def _strake(self):
+        i, k = 0, 3
         if self.player_now == self._teams[0]:
-            for i in range(3):
+            while i < k:
                 if self.y + 1 < 13:
-                    if self.matrix[self.x + 1][self.y].text() != ".":
+                    if self.matrix[self.x][self.y - 1].text() != "." and self.matrix[self.x][self.y].text() != '-':
                         self.matrix[self.x][self.y].setIcon(QIcon(self.color1))
-                        self.matrix[self.x][self.y].setIconSize(QSize(30, 30))
+                        self.matrix[self.x][self.y].setIconSize(QSize(20, 20))
                         self.matrix[self.x][self.y].setText('.')
                         self.y += 1
                         self.matrix[self.x][self.y].setIcon(QIcon('football_ball.jpg'))
                         self.matrix[self.x][self.y].setIconSize(QSize(25, 25))
-                        self.matrix[self.x][self.y].setText('.')
+                        i += 1
                     elif self.matrix[self.x][self.y].text() == '-':
-                        self.cur.execute(f"""UPDATE players SET win_team = {self._teams[0]}
-                                          WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                                                                FROM players);""")
-                        self.cur.execute(f"""UPDATE players SET time_win = {self.time_game}
-                                                                 WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                                                                                    FROM players);""")
-                        self.time_game = 0
-                        self.game_over_sec.display(0)
+                        self.cur.execute("""UPDATE players SET win_team = (SELECT name_team1 FROM players 
+                                            WHERE number_of_play=(SELECT MAX(number_of_play) FROM players))
+                                            WHERE number_of_play=(SELECT MAX(number_of_play) FROM players)""")
+                        self.cur.execute(f"""UPDATE players SET time_win = ?
+                                             WHERE number_of_play=(SELECT MAX(number_of_play) 
+                                             FROM players);""", (self.time_game - 300,))
+                        self.con.commit()
+                        self.time_game = 1
                         self.info_tab.setPlaceholderText(f'Игра окончена!\nПобедила команда {self._teams[0]}')
-        elif self.player_now == self._teams[1]:
-            if self.y - 1 > 0:
-                for i in range(3):
-                    if self.matrix[self.x + 1][self.y].text() != ".":
+                        self.button_south.setEnabled(False)
+                        self.button_west.setEnabled(False)
+                        self.button_noth.setEnabled(False)
+                        self.button_east.setEnabled(False)
+                        self._update_tad_top()
+                        return
+                    elif self.matrix[self.x][self.y + 1].text() == '.':
                         self.matrix[self.x][self.y].setIcon(QIcon(self.color1))
-                        self.matrix[self.x][self.y].setIconSize(QSize(30, 30))
+                        self.matrix[self.x][self.y].setIconSize(QSize(20, 20))
+                        self.matrix[self.x][self.y].setText('.')
+                        self.y += 1
+                        self.matrix[self.x][self.y].setIcon(QIcon('football_ball.jpg'))
+                        self.matrix[self.x][self.y].setIconSize(QSize(25, 25))
+                        i += 1
+                        k += 1
+        elif self.player_now == self._teams[1]:
+            while i < k:
+                if self.y - 1 > -1:
+                    if self.matrix[self.x + 1][self.y].text() != "." and self.matrix[self.x][self.y].text() != "-":
+                        self.matrix[self.x][self.y].setIcon(QIcon(self.color1))
+                        self.matrix[self.x][self.y].setIconSize(QSize(20, 20))
                         self.matrix[self.x][self.y].setText('.')
                         self.y -= 1
                         self.matrix[self.x][self.y].setIcon(QIcon('football_ball.jpg'))
                         self.matrix[self.x][self.y].setIconSize(QSize(25, 25))
-                        self.matrix[self.x][self.y].setText('.')
+                        i += 1
                     elif self.matrix[self.x][self.y].text() == '-':
-                        self.cur.execute(f"""UPDATE players SET win_team = {self._teams[1]}
-                                         WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                                                                FROM players);""")
-                        self.cur.execute(f"""UPDATE players SET time_win = {self.time_game}
-                                                                 WHERE number_of_play=(SELECT MAX(number_of_play) 
-                                                                                                    FROM players);""")
-                        self.time_game = 0
-                        self.game_over_sec.display(0)
-                        self.info_tab.setPlaceholderText(f'Игра окончена!\nПобедила команда {self._teams[1]}')
+                        self.cur.execute("""UPDATE players SET win_team = (SELECT name_team2 FROM players 
+                                                WHERE number_of_play=(SELECT MAX(number_of_play) FROM players))
+                                                WHERE number_of_play=(SELECT MAX(number_of_play) FROM players)""")
+                        self.cur.execute(f"""UPDATE players SET time_win = ?
+                                                    WHERE number_of_play=(SELECT MAX(number_of_play) 
+                                                    FROM players);""", (self.time_game,))
+                        self.con.commit()
+                        self.time_game = 1
+                        self.info_tab.setPlaceholderText(f'Игра окончена!\nПобедила команда {self._teams[0]}')
+                        self.button_south.setEnabled(False)
+                        self.button_west.setEnabled(False)
+                        self.button_noth.setEnabled(False)
+                        self.button_east.setEnabled(False)
+                        self._update_tad_top()
+                        return
+                    elif self.matrix[self.x][self.y - 1].text() == '.':
+                        self.matrix[self.x][self.y].setIcon(QIcon(self.color1))
+                        self.matrix[self.x][self.y].setIconSize(QSize(20, 20))
+                        self.matrix[self.x][self.y].setText('.')
+                        self.y -= 1
+                        self.matrix[self.x][self.y].setIcon(QIcon('football_ball.jpg'))
+                        self.matrix[self.x][self.y].setIconSize(QSize(25, 25))
+                        i += 1
+                        k += 1
+
+    def _update_tad_top(self):
+        result = self.cur.execute("""SELECT time_win 
+                                       FROM players""").fetchall()
+        result.sort(reverse=True)
+        with open('text_for_top.txt', mode='w') as out_file:
+            if len(result) > 20:
+                for i in range(10):
+                    total = self.cur.execute("SELECT win_team FROM players WHERE time_win=?;", result[i]).fetchone()
+                    print('', i + 1, total[0], abs(result[i][0] - 300), file=out_file, sep='\t')
+            else:
+                for i in range(len(result)):
+                    total = self.cur.execute("SELECT win_team FROM players WHERE time_win=?;", result[i]).fetchone()
+                    print('', i + 1, total[0], abs(result[i][0] - 300), file=out_file, sep='\t')
+        with open('text_for_top.txt', mode='r') as file:
+            self.top_tab.setPlainText(file.read())
+        self.con.commit()
 
 
 if __name__ == "__main__":
